@@ -2,24 +2,22 @@ use futures_util::{StreamExt, SinkExt};
 use std::pin::pin;
 use serde::{Deserialize,Serialize};
 use wasm_bindgen::JsCast;
-use gloo_utils::errors::JsError;
 use gloo_storage::{LocalStorage,Storage};
 use gloo_events::EventListener;
 use wasm_bindgen_futures::spawn_local;
 use async_mutex::Mutex;
-use yew_hooks::use_async;
 use yew::prelude::*;
-use gloo_net::websocket::{self,Message};
 use gloo_console::log;
-use base64::{engine::general_purpose, Engine as _};
-use std::sync::{Arc};
-use gloo_net::websocket::futures::WebSocket;
+use std::sync::Arc;
 use ws_stream_wasm:: *;
+use yew_router::prelude::*;
 
 mod routers;
+mod pages;
 
-struct App {
-}
+pub const URL:&str = "127.0.0.1:6969";
+
+struct App { }
 
 impl Component for App {
     type Message = ();
@@ -34,15 +32,17 @@ impl Component for App {
         Self { }
     }
 
-    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, _ctx: &Context<Self>, _msg: Self::Message) -> bool {
         true
     }
 
-    fn view(&self, ctx: &Context<Self>) -> Html {
+    fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
             <div>
                 <h1>{"VNC"}</h1>
-                <Frame />
+                <BrowserRouter>
+                    <Switch<routers::Route> render={|e| routers::switch(&e)}/>
+                </BrowserRouter>
                 <button>{"hello"}</button>
             </div>
         }
@@ -60,7 +60,7 @@ impl Component for App {
                     log!("continue");
                 }
             };
-            let ws = WsMeta::connect( "ws://127.0.0.1:6969/ws/keyboard/hello", None ).await.unwrap().1;
+            let ws = WsMeta::connect(&format!("ws://{URL}/ws/keyboard/hello"), None ).await.unwrap().1;
             let ws = Arc::new(Mutex::new(ws));
             let res = LocalStorage::get::<Resolution>("resolution").unwrap().resolution; // okay to unwrap because
             let mouse_ws = Arc::clone(&ws);
@@ -169,57 +169,6 @@ impl Component for App {
 pub struct Resolution {
     resolution:(u32,u32)
 }
-pub fn connect_with_ws() -> Result<WebSocket,JsError> {
-    log!("opening");
-    gloo_net::websocket::futures::WebSocket::open("ws://127.0.0.1:6969/ws/frames/hello")
-
-}
-#[function_component(Frame)]
-pub fn frame() -> Html {
-    // log!("sending");
-    let ws = use_state(|| {
-        Arc::new(Mutex::new(connect_with_ws().unwrap()))
-    });
-    let websock = Arc::clone(&ws);
-    let frames = use_async(async move {
-        get_frames(Arc::clone(&websock)).await
-    });
-    if !frames.loading {
-        frames.run();
-    }
-    html!{
-        {
-            if let Some(o) = &frames.data {
-                o.clone()
-            } else {
-                html!{
-                    <div>
-                        <img width=960 height=540 id="frame"/>
-                    </div>
-                }
-            }
-        }
-    }
-}
-pub async fn get_frames(read:Arc<Mutex<WebSocket>>) -> Result<Html,()> {
-    log!("connecting ...");
-    if let Some(Ok(o)) = read.lock().await.next().await {
-        match o {
-            Message::Bytes(b) => {
-                let base64 = general_purpose::STANDARD.encode(&b);
-                return Ok(html!{
-                    <div>
-                        <img width=960 height=540 id="frame" src={format!("data:image/jpeg;base64,{base64}")}/>
-                    </div>
-                });
-            },
-            Message::Text(_) => {
-            }
-        }
-    }
-    Err(())
-}
-
 fn main() {
     yew::Renderer::<App>::new().render();
 }
