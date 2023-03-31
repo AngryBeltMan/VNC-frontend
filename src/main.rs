@@ -6,7 +6,7 @@ use yew_router::prelude::*;
 mod routers;
 mod pages;
 
-pub const URL:&str = "127.0.0.1:6969";
+pub const URL:&str = "vnc-shuttle.shuttleapp.rs";
 
 struct App { }
 
@@ -30,7 +30,6 @@ impl Component for App {
                 <BrowserRouter>
                     <Switch<routers::Route> render={|e| routers::switch(&e)}/>
                 </BrowserRouter>
-                <button>{"hello"}</button>
             </div>
         }
     }

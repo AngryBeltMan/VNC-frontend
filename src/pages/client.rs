@@ -20,7 +20,7 @@ use gloo_net::websocket::Message;
 use crate::{URL,Resolution};
 
 pub struct Client {
-    resolution:Resolution
+    resolution:Resolution,
 }
 
 impl Component for Client {
@@ -35,12 +35,15 @@ impl Component for Client {
     }
     fn create(_ctx: &Context<Self>) -> Self {
         Self {
-            resolution:Resolution { resolution: (100,100) }
+            resolution:Resolution { resolution: (100,100) },
+
         }
     }
     fn rendered(&mut self, _ctx: &Context<Self>, first_render: bool) {
         if !first_render { return; }
         let window = web_sys::window().unwrap();
+        let path = window.location().to_string().as_string().unwrap();
+        let path = path.split("/").last().unwrap().to_string();
         let document = window.document().unwrap();
         let frame = loop {
             if let Some(o) = document.get_element_by_id("frame") {
@@ -51,7 +54,7 @@ impl Component for Client {
             }
         };
         spawn_local(async move {
-            let ws = WsMeta::connect(&format!("ws://{URL}/ws/keyboard/hello"), None ).await.unwrap().1;
+            let ws = WsMeta::connect(&format!("wss://{URL}/ws/keyboard/{path}"), None ).await.unwrap().1;
             let ws = Arc::new(Mutex::new(ws));
             let res = LocalStorage::get::<Resolution>("resolution").unwrap().resolution; // okay to unwrap because
             let mouse_ws = Arc::clone(&ws);
@@ -203,5 +206,5 @@ pub async fn get_frames(read:Arc<Mutex<WebSocket>>) -> Result<Html,()> {
 
 pub fn connect_with_ws(code:&str) -> Result<WebSocket,JsError> {
     log!("opening");
-    gloo_net::websocket::futures::WebSocket::open(&format!("ws://{URL}/ws/frames/{code}"))
+    gloo_net::websocket::futures::WebSocket::open(&format!("wss://{URL}/ws/frames/{code}"))
 }
