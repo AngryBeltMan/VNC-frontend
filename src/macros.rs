@@ -48,6 +48,19 @@ macro_rules! eventlistener {
         .forget();
     }};
 }
-fn test() {
-    // crate::eventlistener!(clone)
+#[macro_export]
+macro_rules! input {
+    ($state:expr) => {{
+        use yew::prelude::*;
+        let change = move |event:Event| {
+            let state = &$state;
+            let target:Option<web_sys::EventTarget> = event.target();
+            let html_input:web_sys::HtmlInputElement = target
+                .expect("error getting input")
+                .dyn_into()
+                .unwrap();
+            state.set(html_input.value());
+        };
+        change
+    }};
 }

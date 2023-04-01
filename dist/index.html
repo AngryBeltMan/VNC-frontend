@@ -1,6 +1,9 @@
-<html><head>
-<link rel="preload" href="/vnc-frontend-fcfbb49629302a8_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
-<link rel="modulepreload" href="/vnc-frontend-fcfbb49629302a8.js"></head><body><script type="module">import init from '/vnc-frontend-fcfbb49629302a8.js';init('/vnc-frontend-fcfbb49629302a8_bg.wasm');</script><script>(function () {
+<html><head><title>Epic VNC</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/logo.png">
+<!-- <link data-trunk rel="coy-dir" href="assets"> -->
+
+<link rel="preload" href="/vnc-frontend-f60c53adf2a3ab88_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
+<link rel="modulepreload" href="/vnc-frontend-f60c53adf2a3ab88.js"></head><body><script type="module">import init from '/vnc-frontend-f60c53adf2a3ab88.js';init('/vnc-frontend-f60c53adf2a3ab88_bg.wasm');</script><script>(function () {
     var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     var url = protocol + '//' + window.location.host + '/_trunk/ws';
     var poll_interval = 5000;

@@ -35,7 +35,7 @@ impl Component for App {
         }
     }
 }
-#[derive(Deserialize,Serialize)]
+#[derive(Deserialize,Serialize,Properties,PartialEq,Clone)]
 pub struct Resolution {
     resolution:(u32,u32)
 }

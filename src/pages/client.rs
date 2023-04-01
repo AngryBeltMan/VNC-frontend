@@ -1,5 +1,4 @@
 use yew::prelude::*;
-use serde::{Deserialize,Serialize};
 use stylist::Style;
 use futures_util::{StreamExt, SinkExt};
 use std::pin::pin;
@@ -17,12 +16,12 @@ use base64::{engine::general_purpose, Engine as _};
 use gloo_utils::errors::JsError;
 use gloo_net::websocket::futures::WebSocket;
 use gloo_net::websocket::Message;
-use crate::{URL,Resolution,eventlistener, macros::MButton};
+use crate::{URL,Resolution,eventlistener, input,macros::MButton};
 
 const SCREEN:&'static str = include_str!("screen.css");
 
 pub struct Client {
-    resolution:Resolution,
+    res:Resolution
 }
 
 impl Component for Client {
@@ -31,15 +30,14 @@ impl Component for Client {
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
             <div>
-                <Frame/>
+                <Frame resolution={self.res.resolution}/>
+                <Input/>
             </div>
         }
     }
     fn create(_ctx: &Context<Self>) -> Self {
-        Self {
-            resolution:Resolution { resolution: (100,100) },
-
-        }
+        let res = gloo_storage::LocalStorage::get::<Resolution>("resolution").unwrap();
+        Self { res }
     }
     fn rendered(&mut self, _ctx: &Context<Self>, first_render: bool) {
         if !first_render { return; }
@@ -99,14 +97,15 @@ impl Component for Client {
     }
 }
 #[function_component(Frame)]
-pub fn frame() -> Html {
+pub fn frame(Resolution { resolution }: &Resolution) -> Html {
     let loc = use_location();
     let ws = use_state(|| {
         Arc::new(Mutex::new(connect_with_ws(&loc.pathname.replace("/client/", "")).unwrap()))
     });
-    let websock = Arc::clone(&ws);
+    let res = *resolution;
+    let websocket = Arc::clone(&ws);
     let frames = use_async(async move {
-        get_frames(Arc::clone(&websock)).await
+        get_frames(Arc::clone(&websocket),res).await
     });
     if !frames.loading {
         frames.run();
@@ -119,14 +118,42 @@ pub fn frame() -> Html {
                 let style = Style::new(SCREEN).unwrap();
                 html!{
                     <div>
-                        <img width=960 height=540 class={style} id="frame"/>
+                        <img width={format!("{}",resolution.0)} height={format!("{}",resolution.1)} class={style} id="frame"/>
                     </div>
                 }
             }
         }
     }
 }
-pub async fn get_frames(read:Arc<Mutex<WebSocket>>) -> Result<Html,()> {
+#[function_component(Input)]
+pub fn input() -> Html {
+    let resx = use_state(|| String::new());
+    let resy = use_state(|| String::new());
+    let resx = Arc::new(resx);
+    let resy = Arc::new(resy);
+    let fnresx = Arc::clone(&resx);
+    let fnresy = Arc::clone(&resy);
+    let fn_resx = input!(fnresx);
+    let fn_resy = input!(fnresy);
+    let press = move |_| {
+        let new_res = Resolution {resolution:(resx.parse::<u32>().unwrap_or(960),resy.parse::<u32>().unwrap_or(540))};
+        if gloo_storage::LocalStorage::set("resolution", new_res).is_err() { log!("could not set resolution") }
+    };
+    html!{
+        <div>
+            <div>
+                <label>{"resolution x:"}</label>
+                <input onchange={fn_resx}/>
+            </div>
+            <div>
+                <label>{"resolution y:"}</label>
+                <input onchange={fn_resy}/>
+            </div>
+            <button onclick={press} >{"set"}</button>
+        </div>
+    }
+}
+pub async fn get_frames(read:Arc<Mutex<WebSocket>>,res:(u32,u32)) -> Result<Html,()> {
     log!("connecting ...");
     if let Some(Ok(o)) = read.lock().await.next().await {
         let style = Style::new(SCREEN).unwrap();
@@ -135,7 +162,7 @@ pub async fn get_frames(read:Arc<Mutex<WebSocket>>) -> Result<Html,()> {
                 let base64 = general_purpose::STANDARD.encode(&b);
                 return Ok(html!{
                     <div>
-                        <img width=960 height=540 id="frame" class={style} src={format!("data:image/jpeg;base64,{base64}")}/>
+                        <img width={format!("{}",res.0)} height={format!("{}",res.1)} id="frame" class={style} src={format!("data:image/jpeg;base64,{base64}")}/>
                     </div>
                 });
             },
