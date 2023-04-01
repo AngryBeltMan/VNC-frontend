@@ -5,6 +5,7 @@ use yew_router::prelude::*;
 
 mod routers;
 mod pages;
+mod macros;
 
 pub const URL:&str = "vnc-shuttle.shuttleapp.rs";
 

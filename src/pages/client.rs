@@ -17,7 +17,7 @@ use base64::{engine::general_purpose, Engine as _};
 use gloo_utils::errors::JsError;
 use gloo_net::websocket::futures::WebSocket;
 use gloo_net::websocket::Message;
-use crate::{URL,Resolution};
+use crate::{URL,Resolution,eventlistener, macros::MButton};
 
 const SCREEN:&'static str = include_str!("screen.css");
 
@@ -69,19 +69,19 @@ impl Component for Client {
             let key_ws_down = Arc::clone(&ws);
             let mouse_ws_press = Arc::clone(&ws);
             let mouse_ws_release = Arc::clone(&ws);
-            EventListener::new(&window,"keyup", move |event:&Event| {
-                if let Ok(o) = event.clone().dyn_into::<web_sys::KeyboardEvent>() {
-                    let key_ws_up = Arc::clone(&key_ws_up);
-                    let key = o.key();
-                    spawn_local(async move {
-                        let key = format!("KEYUP,{}",key);
-                        log!(&key);
-                        pin!(key_ws_up.lock().await).send(WsMessage::Text(key)).await.unwrap();
-                    });
-                } else {
-                    log!("error");
-                }
-            }).forget();
+
+            // checks if keys have been pressed up
+            eventlistener!(&window,"keyup",Arc::clone(&key_ws_up),"KEYUP",web_sys::KeyboardEvent,key);
+
+            // checks if keys have been pressed down
+            eventlistener!(&window,"keydown",Arc::clone(&key_ws_down),"KEYDOWN",web_sys::KeyboardEvent,key);
+
+            // checks if mouse button have been pressed down
+            eventlistener!(&window,"mousedown",Arc::clone(&mouse_ws_press),"MOUSEDOWN",web_sys::MouseEvent,button_type);
+
+            // checks if mouse button have been pressed up
+            eventlistener!(&window,"mouseup",Arc::clone(&mouse_ws_release),"MOUSEUP",web_sys::MouseEvent,button_type);
+
             EventListener::new(&frame,"mousemove", move |event:&Event| {
                 let mouse_event = event.clone().dyn_into::<MouseEvent>();
                 if let Ok(mouse) =   mouse_event {
@@ -95,75 +95,7 @@ impl Component for Client {
                     });
                 }
             }).forget();
-            EventListener::new(&window,"keydown", move |event:&Event| {
-                if let Ok(o) = event.clone().dyn_into::<web_sys::KeyboardEvent>() {
-                    let key_ws_down = Arc::clone(&key_ws_down);
-                    let key = o.key();
-                    let key = format!("KEYDOWN,{}",key);
-                    log!(&key);
-                    spawn_local(async move {
-                        pin!(key_ws_down.lock().await).send(WsMessage::Text(key)).await.unwrap();
-                    });
-                }
-            }).forget();
-            EventListener::new(&window,"mousedown", move |event:&Event| {
-                if let Ok(o) = event.clone().dyn_into::<MouseEvent>() {
-                    match o.button() {
-                        0 => {
-                            let mouse_ws_press = Arc::clone(&mouse_ws_press);
-                            let mouse = format!("MOUSEDOWN,LEFT");
-                            spawn_local(async move {
-                                pin!(mouse_ws_press.lock().await).send(WsMessage::Text(mouse)).await.unwrap();
-                            });
-                        },
-                        1 => {
-                            let mouse_ws_press = Arc::clone(&mouse_ws_press);
-                            let mouse = format!("MOUSEDOWN,MIDDLE");
-                            spawn_local(async move {
-                                pin!(mouse_ws_press.lock().await).send(WsMessage::Text(mouse)).await.unwrap();
-                            });
-                        },
-                        2 => {
-                            let mouse_ws_press = Arc::clone(&mouse_ws_press);
-                            let mouse = format!("MOUSEDOWN,RIGHT");
-                            spawn_local(async move {
-                                pin!(mouse_ws_press.lock().await).send(WsMessage::Text(mouse)).await.unwrap();
-                            });
-                        },
-                        _ => {}
-                    }
-                }
-            }).forget();
-            EventListener::new(&window,"mouseup", move |event:&Event| {
-                if let Ok(o) = event.clone().dyn_into::<MouseEvent>() {
-                    match o.button() {
-                        0 => {
-                            let mouse_ws_press = Arc::clone(&mouse_ws_release);
-                            let mouse = format!("MOUSEUP,LEFT");
-                            spawn_local(async move {
-                                pin!(mouse_ws_press.lock().await).send(WsMessage::Text(mouse)).await.unwrap();
-                            });
-                        },
-                        1 => {
-                            let mouse_ws_press = Arc::clone(&mouse_ws_release);
-                            let mouse = format!("MOUSEUP,MIDDLE");
-                            spawn_local(async move {
-                                pin!(mouse_ws_press.lock().await).send(WsMessage::Text(mouse)).await.unwrap();
-                            });
-                        },
-                        2 => {
-                            let mouse_ws_press = Arc::clone(&mouse_ws_release);
-                            let mouse = format!("MOUSEUP,RIGHT");
-                            spawn_local(async move {
-                                pin!(mouse_ws_press.lock().await).send(WsMessage::Text(mouse)).await.unwrap();
-                            });
-                        },
-                        _ => {}
-                    }
-                }
-            }).forget();
-
-        });
+});
     }
 }
 #[function_component(Frame)]
@@ -187,7 +119,7 @@ pub fn frame() -> Html {
                 let style = Style::new(SCREEN).unwrap();
                 html!{
                     <div>
-                        <img width=960 height=540 class="style" id="frame"/>
+                        <img width=960 height=540 class={style} id="frame"/>
                     </div>
                 }
             }
