@@ -45,6 +45,7 @@ impl Component for Client {
         let path = window.location().to_string().as_string().unwrap();
         let path = path.split("/").last().unwrap().to_string();
         let document = window.document().unwrap();
+
         let frame = loop {
             if let Some(o) = document.get_element_by_id("frame") {
                 log!("found image");
@@ -53,6 +54,10 @@ impl Component for Client {
                 log!("continue");
             }
         };
+        let dom = frame.get_bounding_client_rect();
+        let locx = dom.x() as i32;
+        let locy = dom.y() as i32;
+
         spawn_local(async move {
             let ws = WsMeta::connect(&format!("wss://{URL}/ws/keyboard/{path}"), None ).await.unwrap().1;
             let ws = Arc::new(Mutex::new(ws));
@@ -78,7 +83,7 @@ impl Component for Client {
             EventListener::new(&frame,"mousemove", move |event:&Event| {
                 let mouse_event = event.clone().dyn_into::<MouseEvent>();
                 if let Ok(mouse) =   mouse_event {
-                    let cords = (mouse.x(),mouse.y());
+                    let cords = ( mouse.x() - locx ,mouse.y() - locy );
                     let mouse_ws = Arc::clone(&mouse_ws);
                     spawn_local(async move {
                         let mouse_ws = Arc::clone(&mouse_ws);
