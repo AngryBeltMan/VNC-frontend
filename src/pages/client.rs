@@ -55,8 +55,8 @@ impl Component for Client {
             }
         };
         let dom = frame.get_bounding_client_rect();
-        let locx = dom.x() as i32;
-        let locy = dom.y() as i32;
+        let locx = dom.x().floor() as i32;
+        let locy = dom.y().floor() as i32;
 
         spawn_local(async move {
             let ws = WsMeta::connect(&format!("wss://{URL}/ws/keyboard/{path}"), None ).await.unwrap().1;

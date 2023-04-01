@@ -1163,7 +1163,7 @@ function initSync(module) {
 
 async function init(input) {
     if (typeof input === 'undefined') {
-        input = new URL('vnc-frontend-549cb951cae37b20_bg.wasm', import.meta.url);
+        input = new URL('vnc-frontend-883712994b0c1de5_bg.wasm', import.meta.url);
     }
     const imports = getImports();
 
