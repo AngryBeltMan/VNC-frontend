@@ -1,6 +1,6 @@
 use yew::prelude::*;
-use yew_router::prelude::{Navigator, use_navigator};
 use serde::{Deserialize,Serialize};
+use stylist::Style;
 use futures_util::{StreamExt, SinkExt};
 use std::pin::pin;
 use wasm_bindgen::JsCast;
@@ -18,6 +18,8 @@ use gloo_utils::errors::JsError;
 use gloo_net::websocket::futures::WebSocket;
 use gloo_net::websocket::Message;
 use crate::{URL,Resolution};
+
+const SCREEN:&'static str = include_str!("screen.css");
 
 pub struct Client {
     resolution:Resolution,
@@ -182,9 +184,10 @@ pub fn frame() -> Html {
             if let Some(o) = &frames.data {
                 o.clone()
             } else {
+                let style = Style::new(SCREEN).unwrap();
                 html!{
                     <div>
-                        <img width=960 height=540 id="frame"/>
+                        <img width=960 height=540 class="style" id="frame"/>
                     </div>
                 }
             }
@@ -194,12 +197,13 @@ pub fn frame() -> Html {
 pub async fn get_frames(read:Arc<Mutex<WebSocket>>) -> Result<Html,()> {
     log!("connecting ...");
     if let Some(Ok(o)) = read.lock().await.next().await {
+        let style = Style::new(SCREEN).unwrap();
         match o {
             Message::Bytes(b) => {
                 let base64 = general_purpose::STANDARD.encode(&b);
                 return Ok(html!{
                     <div>
-                        <img width=960 height=540 id="frame" src={format!("data:image/jpeg;base64,{base64}")}/>
+                        <img width=960 height=540 id="frame" class={style} src={format!("data:image/jpeg;base64,{base64}")}/>
                     </div>
                 });
             },
